@@ -27,6 +27,7 @@ jobs:
           python tools/changelog/generate_cl.py
           echo "pr_number=$PR_NUM" >> $GITHUB_ENV
       - name: Commit and Push Changes
+        if: env.pr_number != "-1"
         run: |
           git config --local user.name "Changelogs"
           git config --local user.email "action@github.com"
