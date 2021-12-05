@@ -1,45 +1,21 @@
-"""
-DO NOT MANUALLY RUN THIS SCRIPT.
----------------------------------
-
-This script is designed to generate and push a CL file that can be later compiled.
-The body of the changelog is determined by the description of the PR that was merged.
-
-If a commit is pushed without being associated with a PR, or if a PR is missing a CL,
-the script is designed to exit as a failure. This is to help keep track of PRs without
-CLs and direct commits. See the relating comments in the below source to disable this function.
-
-This script depends on the tags.yml file located in the same directory. You can use that
-file to configure the exact tags you'd like this script to use when generating changelog entries.
-If this is being used in a /tg/ or Bee downstream, the default tags should work.
-
-Expected envrionmental variables:
------------------------------------
-GIT_NAME: Username of the github account to be used as the commiter (User provided)
-GIT_EMAIL: Email associated with the above (User provided)
-GITHUB_REPOSITORY: Github action variable representing the active repo (Action provided)
-BOT_TOKEN: A repository account token, this will allow the action to push the changes (Action provided)
-GITHUB_SHA: The SHA associated with the commit that triggered the action (Action provided)
-"""
 import os
 import io
 import re
 from pathlib import Path
+import shutil
 from ruamel import yaml
 from github import Github, InputGitAuthor
 
 CL_BODY = re.compile(r"(:cl:|🆑)(.+)?\r\n((.|\n|\r)+?)\r\n\/(:cl:|🆑)", re.MULTILINE)
 CL_SPLIT = re.compile(r"(^\w+):\s+(\w.+)", re.MULTILINE)
 
-git_email = os.getenv("GIT_EMAIL")
-git_name = os.getenv("GIT_NAME")
-
 # Blessed is the GoOnStAtIoN birb ZeWaKa for thinking of this first
 repo = os.getenv("GITHUB_REPOSITORY")
-token = os.getenv("BOT_TOKEN")
 sha = os.getenv("GITHUB_SHA")
 
-git = Github(token)
+os.putenv("PR_NUM", "-1")  # Don't commit if we don't need to
+
+git = Github()
 repo = git.get_repo(repo)
 commit = repo.get_commit(sha)
 pr_list = commit.get_pulls()
@@ -88,8 +64,10 @@ if write_cl['changes']:
         yaml.dump(write_cl, cl_contents)
         cl_contents.seek(0)
 
-        #Push the newly generated changelog to the master branch so that it can be compiled
-        repo.create_file(f"html/changelogs/AutoChangeLog-pr-{pr_number}.yml", f"Automatic changelog generation for PR #{pr_number} [ci skip]", content=f'{cl_contents.read()}', branch='dev', committer=InputGitAuthor(git_name, git_email))
+        with open(f"html/changelogs/AutoChangeLog-pr-{pr_number}.yml", 'w') as f:
+            shutil.copyfileobj(cl_contents, f)
+
+    os.putenv("PR_NUM", f"{pr_number}")  # For the PR number in the commit info
     print("Done!")
 else:
     print("No CL changes detected!")
