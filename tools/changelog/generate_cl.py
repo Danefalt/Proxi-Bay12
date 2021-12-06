@@ -70,8 +70,8 @@ write_cl['changes'] = []
 for k, v in cl_list:
     if k in tags['tags'].keys():  # Check to see if there are any valid tags, as determined by tags.yml
         v = v.rstrip()
-        if v not in list(tags[
-                             'defaults'].values()):  # Check to see if the tags are associated with something that isn't the default text
+        if v not in list(tags['defaults'].values()): 
+            # Check to see if the tags are associated with something that isn't the default text
             write_cl['changes'].append({ tags['tags'][k]: v })
 
 if write_cl['changes']:
